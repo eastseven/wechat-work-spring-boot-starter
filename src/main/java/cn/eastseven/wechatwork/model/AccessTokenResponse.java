@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * @author eastseven
@@ -23,4 +24,14 @@ public class AccessTokenResponse implements Serializable {
     @JsonProperty("expires_in")
     private int expires;
 
+    public static AccessTokenResponse of(AccessTokenEntity entity) {
+        Objects.requireNonNull(entity);
+        Objects.requireNonNull(entity.getToken());
+        AccessTokenResponse response = new AccessTokenResponse();
+        response.errCode = 0;
+        response.errMsg = "ok";
+        response.accessToken = entity.getToken();
+        response.expires = entity.getExpires();
+        return response;
+    }
 }

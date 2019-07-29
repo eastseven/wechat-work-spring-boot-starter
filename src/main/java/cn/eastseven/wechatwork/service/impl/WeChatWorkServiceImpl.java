@@ -1,14 +1,20 @@
 package cn.eastseven.wechatwork.service.impl;
 
 import cn.eastseven.wechatwork.autoconfigure.WeChatWorkProperties;
+import cn.eastseven.wechatwork.model.AccessTokenEntity;
 import cn.eastseven.wechatwork.model.AccessTokenResponse;
+import cn.eastseven.wechatwork.repository.AccessTokenRepository;
 import cn.eastseven.wechatwork.service.WeChatWorkService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.Date;
+import java.util.Optional;
 
 /**
  * @author eastseven
@@ -20,6 +26,9 @@ public class WeChatWorkServiceImpl implements WeChatWorkService {
 
     private RestTemplate restTemplate;
 
+    @Autowired
+    private AccessTokenRepository accessTokenRepository;
+
     public WeChatWorkServiceImpl(WeChatWorkProperties properties, RestTemplate restTemplate) {
         this.properties = properties;
         this.restTemplate = restTemplate;
@@ -27,9 +36,22 @@ public class WeChatWorkServiceImpl implements WeChatWorkService {
 
     @Override
     public AccessTokenResponse accessToken(String corpId, String corpSecret) {
+        Optional<AccessTokenEntity> optional = accessTokenRepository.findById(corpId);
+        if (optional.isPresent()) {
+            AccessTokenEntity entity = optional.get();
+            boolean notExpired = new Date().before(entity.getExpireTime());
+            if (notExpired) {
+                return AccessTokenResponse.of(entity);
+            }
+        }
+
         final String url = "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={corpId}&corpsecret={corpSecret}";
         AccessTokenResponse response = restTemplate.getForEntity(url, AccessTokenResponse.class, corpId, corpSecret).getBody();
         log.debug(">>>获取企业微信AccessToken\n{}", response);
+
+        if (response.getErrCode() == 0) {
+            accessTokenRepository.save(new AccessTokenEntity(corpId, response));
+        }
         return response;
     }
 

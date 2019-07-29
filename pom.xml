@@ -39,6 +39,10 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+        </dependency>
         <!-- 自动化配置依赖，自定义 starter 核心依赖包 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
