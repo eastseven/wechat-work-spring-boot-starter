@@ -2,6 +2,7 @@ package cn.eastseven.wechatwork.service;
 
 import cn.eastseven.wechatwork.model.AccessTokenResponse;
 import cn.eastseven.wechatwork.model.msg.MarkdownTextRequest;
+import cn.eastseven.wechatwork.model.msg.TaskCardRequest;
 
 /**
  * @author eastseven
@@ -39,4 +40,12 @@ public interface WeChatWorkService {
      * @return 结果
      */
     Object sendMarkdown(MarkdownTextRequest msg);
+
+    /**
+     * 任务卡片消息
+     *
+     * @param msg 任务卡片消息
+     * @return 结果
+     */
+    Object sendTaskCard(TaskCardRequest msg);
 }

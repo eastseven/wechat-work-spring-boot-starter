@@ -4,6 +4,7 @@ import cn.eastseven.wechatwork.autoconfigure.WeChatWorkProperties;
 import cn.eastseven.wechatwork.model.AccessTokenEntity;
 import cn.eastseven.wechatwork.model.AccessTokenResponse;
 import cn.eastseven.wechatwork.model.msg.MarkdownTextRequest;
+import cn.eastseven.wechatwork.model.msg.TaskCardRequest;
 import cn.eastseven.wechatwork.repository.AccessTokenRepository;
 import cn.eastseven.wechatwork.service.WeChatWorkService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -109,6 +110,19 @@ public class WeChatWorkServiceImpl implements WeChatWorkService {
     @Override
     public Object sendMarkdown(MarkdownTextRequest msg) {
 
+        try {
+            String requestBody = om.writeValueAsString(msg);
+            log.debug("\n{}\n", requestBody);
+            return send(requestBody);
+        } catch (JsonProcessingException e) {
+            log.error("", e);
+        }
+
+        return null;
+    }
+
+    @Override
+    public Object sendTaskCard(TaskCardRequest msg) {
         try {
             String requestBody = om.writeValueAsString(msg);
             log.debug("\n{}\n", requestBody);
