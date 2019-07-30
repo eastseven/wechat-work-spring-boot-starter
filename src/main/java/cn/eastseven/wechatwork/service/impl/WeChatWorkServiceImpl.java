@@ -3,8 +3,11 @@ package cn.eastseven.wechatwork.service.impl;
 import cn.eastseven.wechatwork.autoconfigure.WeChatWorkProperties;
 import cn.eastseven.wechatwork.model.AccessTokenEntity;
 import cn.eastseven.wechatwork.model.AccessTokenResponse;
+import cn.eastseven.wechatwork.model.msg.MarkdownTextRequest;
 import cn.eastseven.wechatwork.repository.AccessTokenRepository;
 import cn.eastseven.wechatwork.service.WeChatWorkService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
@@ -14,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Date;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -21,6 +25,8 @@ import java.util.Optional;
  */
 @Slf4j
 public class WeChatWorkServiceImpl implements WeChatWorkService {
+
+    private ObjectMapper om;
 
     private WeChatWorkProperties properties;
 
@@ -32,6 +38,16 @@ public class WeChatWorkServiceImpl implements WeChatWorkService {
     public WeChatWorkServiceImpl(WeChatWorkProperties properties, RestTemplate restTemplate) {
         this.properties = properties;
         this.restTemplate = restTemplate;
+        this.om = new ObjectMapper();
+    }
+
+    @Override
+    public AccessTokenResponse accessToken() {
+        String corpId = properties.getCorpId();
+        String corpSecret = properties.getCorpSecret();
+        Objects.requireNonNull(corpId);
+        Objects.requireNonNull(corpSecret);
+        return accessToken(corpId, corpSecret);
     }
 
     @Override
@@ -55,28 +71,50 @@ public class WeChatWorkServiceImpl implements WeChatWorkService {
         return response;
     }
 
+    /**
+     * https://www.baeldung.com/spring-resttemplate-post-json
+     *
+     * @param requestBody 消息体
+     * @return 结果
+     */
+    private Object send(String requestBody) {
+        AccessTokenResponse accessTokenResponse = accessToken();
+        if (accessTokenResponse.getErrCode() != 0) {
+            throw new RuntimeException(accessTokenResponse.getErrMsg());
+        }
+
+        final String url = "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={accessToken}";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request = new HttpEntity<String>(requestBody, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class, accessTokenResponse.getAccessToken());
+        log.info("\nrequestBody={}\nresponse={}\n", requestBody, response);
+        return response;
+    }
+
     @Override
     public Object sendText(String msg) {
-        AccessTokenResponse accessTokenResponse = accessToken(properties.getCorpId(), properties.getCorpSecret());
-        if (accessTokenResponse.getErrCode() == 0) {
-            final String url = "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={accessToken}";
-            // https://www.baeldung.com/spring-resttemplate-post-json
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            String requestBody = "{\n" +
-                    "   \"totag\" : \"" + properties.getTagId() + "\",\n" +
-                    "   \"msgtype\" : \"text\",\n" +
-                    "   \"agentid\" : " + properties.getAgentId() + ",\n" +
-                    "   \"text\" : {\n" +
-                    "       \"content\" : \"" + msg + "\"" + "\n" +
-                    "   },\n" +
-                    "   \"safe\":0\n" +
-                    "}";
-            HttpEntity<String> request = new HttpEntity<String>(requestBody, headers);
+        String requestBody = "{\n" +
+                "   \"totag\" : \"" + properties.getTagId() + "\",\n" +
+                "   \"msgtype\" : \"text\",\n" +
+                "   \"agentid\" : " + properties.getAgentId() + ",\n" +
+                "   \"text\" : {\n" +
+                "       \"content\" : \"" + msg + "\"" + "\n" +
+                "   },\n" +
+                "   \"safe\":0\n" +
+                "}";
+        return send(requestBody);
+    }
 
-            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class, accessTokenResponse.getAccessToken());
-            log.info("\nrequestBody={}\nresponse={}\n", requestBody, response);
-            return response;
+    @Override
+    public Object sendMarkdown(MarkdownTextRequest msg) {
+
+        try {
+            String requestBody = om.writeValueAsString(msg);
+            log.debug("\n{}\n", requestBody);
+            return send(requestBody);
+        } catch (JsonProcessingException e) {
+            log.error("", e);
         }
 
         return null;

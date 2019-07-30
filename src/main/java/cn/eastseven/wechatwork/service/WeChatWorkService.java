@@ -1,11 +1,19 @@
 package cn.eastseven.wechatwork.service;
 
 import cn.eastseven.wechatwork.model.AccessTokenResponse;
+import cn.eastseven.wechatwork.model.msg.MarkdownTextRequest;
 
 /**
  * @author eastseven
  */
 public interface WeChatWorkService {
+
+    /**
+     * 获取AccessToken
+     *
+     * @return 默认AccessToken
+     */
+    AccessTokenResponse accessToken();
 
     /**
      * 获取AccessToken
@@ -23,4 +31,12 @@ public interface WeChatWorkService {
      * @return 结果
      */
     Object sendText(String msg);
+
+    /**
+     * markdown消息
+     *
+     * @param msg markdown消息
+     * @return 结果
+     */
+    Object sendMarkdown(MarkdownTextRequest msg);
 }
